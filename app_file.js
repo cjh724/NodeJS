@@ -1,11 +1,31 @@
 var express = require('express');
 var bodyParser = require('body-parser');    // parameter : npm 설치 때 쓴 이름
+var multer =require('multer');
+var _storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.originalname);
+    }
+});
+var upload = multer({ storage : _storage })
 var fs = require('fs');
 var app = express();
+
 app.use(bodyParser.urlencoded({extended : false}));
 app.locals.pretty = true;       // jade 줄바꿈
+app.use('/user', express.static('uploads'));    // 사용자에게 보여주기
 app.set('view engine', 'jade');
 app.set('views', './views_file');
+
+app.get('/upload', function(req, res) {
+    res.render('upload');
+});
+app.post('/upload', upload.single('userfile'), function(req, res) {
+    console.log(req.file);
+    res.send('Uploaded : ' + req.file.filename);
+});
 
 app.get('/topic/new', function(req, res) {
     fs.readdir('data', function(err, files) {
@@ -16,7 +36,6 @@ app.get('/topic/new', function(req, res) {
         res.render('new', {topics : files});
     });
 });
-
 app.get(['/topic', '/topic/:id'], function(req, res) {
     fs.readdir('data', function(err, files) {
         if(err) {
@@ -39,7 +58,6 @@ app.get(['/topic', '/topic/:id'], function(req, res) {
         }
     });
 });
-
 app.post('/topic', function(req, res) {
     var title = req.body.title;
     var description = req.body.description;
